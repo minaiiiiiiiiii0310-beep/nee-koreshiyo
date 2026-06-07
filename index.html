@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#ff5c8a" />
+<title>ねぇ、これしよ</title>
+<!-- PWA -->
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" type="image/png" href="icon-192.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="これしよ" />
+<style>
+  :root{
+    --pink:#ff5c8a; --pink2:#ff8fb0;
+    --orange:#ff8a3d; --orange2:#ffb15c;
+    --ink:#2b2230; --muted:#8a7f90;
+    --card:#ffffff; --bg:#fff5f7;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",sans-serif;
+    color:var(--ink); background:var(--bg);
+    display:flex; justify-content:center;
+    overflow-x:hidden;
+  }
+  #app{
+    width:100%; max-width:480px; min-height:100dvh;
+    display:flex; flex-direction:column; position:relative;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .screen{display:none; flex:1; flex-direction:column; padding:22px 20px 28px;}
+  .screen.active{display:flex; animation:fade .35s ease;}
+  @keyframes fade{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+
+  /* ===== HOME ===== */
+  .home{justify-content:center; text-align:center; gap:8px;}
+  .logo{font-size:30px; font-weight:800; letter-spacing:1px; margin-bottom:2px;}
+  .logo small{display:block; font-size:13px; font-weight:600; color:var(--muted); letter-spacing:2px; margin-top:6px;}
+  .home-sub{color:var(--muted); font-size:14px; margin-bottom:26px;}
+  .mode-btn{
+    border:none; border-radius:24px; padding:26px 20px; margin:9px 0;
+    color:#fff; font-size:21px; font-weight:800; cursor:pointer;
+    box-shadow:0 12px 26px rgba(0,0,0,.14); transition:transform .12s;
+    display:flex; flex-direction:column; gap:6px; align-items:center;
+  }
+  .mode-btn:active{transform:scale(.97);}
+  .mode-btn span{font-size:13px; font-weight:600; opacity:.92;}
+  .mode-futari{background:linear-gradient(135deg,var(--pink),var(--pink2));}
+  .mode-enkai{background:linear-gradient(135deg,var(--orange),var(--orange2));}
+  .home-foot{margin-top:30px; font-size:12px; color:var(--muted);}
+
+  /* ===== shared header ===== */
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .back{background:none; border:none; font-size:16px; color:var(--ink); cursor:pointer; padding:6px 4px; font-weight:700;}
+  .title{font-size:17px; font-weight:800;}
+  .sound{background:none;border:none;font-size:20px;cursor:pointer;padding:4px;}
+
+  /* segmented control */
+  .seg{display:flex; background:#fff; border-radius:14px; padding:4px; box-shadow:0 4px 12px rgba(0,0,0,.06); margin-bottom:12px;}
+  .seg button{flex:1; border:none; background:none; padding:10px 4px; border-radius:10px; font-size:13px; font-weight:700; color:var(--muted); cursor:pointer; transition:.15s;}
+  .seg button.on{color:#fff;}
+  .futari .seg button.on{background:var(--pink);}
+  .enkai .seg button.on{background:var(--orange);}
+
+  .row{display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:14px; font-weight:700; color:var(--muted);}
+  .switch{margin-left:auto; position:relative; width:50px; height:28px;}
+  .switch input{opacity:0; width:0; height:0;}
+  .slider{position:absolute; inset:0; background:#e3dbe6; border-radius:30px; transition:.2s; cursor:pointer;}
+  .slider:before{content:""; position:absolute; height:22px; width:22px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; box-shadow:0 2px 4px rgba(0,0,0,.2);}
+  .switch input:checked + .slider{background:var(--orange);}
+  .switch input:checked + .slider:before{transform:translateX(22px);}
+
+  /* card */
+  .stage{flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:18px;}
+  .card{
+    width:100%; background:var(--card); border-radius:26px; padding:34px 24px;
+    box-shadow:0 16px 40px rgba(0,0,0,.12); text-align:center; min-height:230px;
+    display:flex; flex-direction:column; justify-content:center; gap:16px;
+    position:relative; overflow:hidden;
+  }
+  .card.pop{animation:pop .4s cubic-bezier(.2,1.3,.4,1);}
+  @keyframes pop{0%{transform:scale(.9) rotate(-1deg); opacity:.3;}100%{transform:none; opacity:1;}}
+  .badge{align-self:center; font-size:12px; font-weight:800; padding:6px 14px; border-radius:30px; color:#fff;}
+  .b-pink{background:var(--pink);} .b-orange{background:var(--orange);} .b-red{background:#ff4d63;} .b-blue{background:#5b8cff;}
+  .card .text{font-size:23px; font-weight:800; line-height:1.5;}
+  .card .hint{font-size:13px; color:var(--muted); font-weight:600;}
+  .card .who{font-size:15px; font-weight:800; color:var(--orange);}
+
+  .actions{display:flex; gap:12px; width:100%;}
+  .btn{flex:1; border:none; border-radius:18px; padding:18px; font-size:17px; font-weight:800; cursor:pointer; transition:transform .1s; box-shadow:0 8px 18px rgba(0,0,0,.12);}
+  .btn:active{transform:scale(.96);}
+  .btn-main{color:#fff;}
+  .futari .btn-main{background:linear-gradient(135deg,var(--pink),var(--pink2));}
+  .enkai .btn-main{background:linear-gradient(135deg,var(--orange),var(--orange2));}
+  .btn-ghost{flex:0 0 34%; background:#fff; color:var(--muted);}
+
+  .names{width:100%; margin-bottom:6px;}
+  .name-add{display:flex; gap:8px;}
+  .name-add input{flex:1; border:1.5px solid #eadfe6; border-radius:14px; padding:12px 14px; font-size:15px; outline:none; min-width:0;}
+  .name-add input:focus{border-color:var(--orange);}
+  .addbtn{flex:0 0 auto; border:none; background:var(--orange); color:#fff; font-weight:800; font-size:14px; border-radius:14px; padding:0 16px; cursor:pointer;}
+  .addbtn:active{transform:scale(.96);}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; min-height:2px;}
+  .chip{display:inline-flex; align-items:center; gap:6px; background:#fff; border:1.5px solid #ffe0c8; color:var(--ink); font-weight:700; font-size:14px; padding:7px 8px 7px 14px; border-radius:30px; box-shadow:0 2px 6px rgba(0,0,0,.05);}
+  .chip button{border:none; background:#ffe7d6; color:var(--orange); width:22px; height:22px; border-radius:50%; font-size:14px; line-height:1; cursor:pointer; font-weight:800;}
+  .chip button:active{transform:scale(.9);}
+  .names .tip{font-size:11px; color:var(--muted); margin:8px 2px 0;}
+
+  .spin{filter:blur(.3px); opacity:.55; transition:none;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <section id="home" class="screen home active">
+    <div class="logo">ねぇ、これしよ<small>FUTARI &amp; ENKAI</small></div>
+    <div class="home-sub">「何する？」をなくす、距離が縮まるアプリ</div>
+    <button class="mode-btn mode-futari" onclick="openFutari()">💞 ふたりモード<span>デート・ふたりの時間に。距離を縮めるお題</span></button>
+    <button class="mode-btn mode-enkai" onclick="openEnkai()">🍻 宴会モード<span>みんなで盛り上がる！お題＆罰ゲームルーレット</span></button>
+    <div class="home-foot">気まずくなったら「パス」でOK。無理なお題はスキップしよう。</div>
+  </section>
+
+  <!-- FUTARI -->
+  <section id="futari" class="screen futari">
+    <div class="topbar">
+      <button class="back" onclick="go('home')">‹ もどる</button>
+      <div class="title">💞 ふたりモード</div>
+      <button class="sound" onclick="toggleSound(this)">🔊</button>
+    </div>
+    <div class="seg" id="fLevel">
+      <button data-lv="1" class="on">ライト</button>
+      <button data-lv="2">ふつう</button>
+      <button data-lv="3">ちょっとドキッ</button>
+    </div>
+    <div class="stage">
+      <div class="card" id="fCard">
+        <div class="badge b-pink">START</div>
+        <div class="text">レベルを選んで<br>「お題を出す」を押してね</div>
+        <div class="hint">二人でこの画面を見ながらどうぞ</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-ghost" onclick="passFutari()">パス</button>
+        <button class="btn btn-main" onclick="nextFutari()">お題を出す</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ENKAI -->
+  <section id="enkai" class="screen enkai">
+    <div class="topbar">
+      <button class="back" onclick="go('home')">‹ もどる</button>
+      <div class="title">🍻 宴会モード</div>
+      <button class="sound" onclick="toggleSound(this)">🔊</button>
+    </div>
+
+    <div class="seg" id="eType">
+      <button data-type="mix" class="on">おまかせ</button>
+      <button data-type="odai">お題</button>
+      <button data-type="batsu">罰ゲーム</button>
+    </div>
+    <div class="seg" id="eLevel">
+      <button data-lv="1" class="on">ゆるめ</button>
+      <button data-lv="2">ふつう</button>
+      <button data-lv="3">鬼</button>
+    </div>
+    <div class="row">
+      🍵 お酒なしモード
+      <label class="switch"><input type="checkbox" id="noAlcohol"><span class="slider"></span></label>
+    </div>
+    <div class="names">
+      <div class="name-add">
+        <input id="nameInput" type="text" placeholder="名前を入力（例：たろう）" maxlength="12" />
+        <button type="button" class="addbtn" onclick="addMember()">＋ 追加</button>
+      </div>
+      <div id="memberList" class="chips"></div>
+      <div class="tip">参加者を1人ずつ追加。入れると「誰がやるか」もルーレットで決めます（空ならお題だけ）</div>
+    </div>
+
+    <div class="stage">
+      <div class="card" id="eCard">
+        <div class="badge b-orange">READY</div>
+        <div class="text">設定したら<br>「回す！」を押してね</div>
+        <div class="hint">ドラムロール 🥁 から結果発表まで一気に！</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-main" onclick="spinEnkai()" id="spinBtn">回す！🎲</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ================= データ ================= */
+// ふたりモード：lv 1=ライト 2=ふつう 3=ドキッ
+const FUTARI = [
+  // ===== lv1 ライト =====
+  {lv:1,cat:"アイス",t:"お互いの第一印象を3つずつ言い合おう"},
+  {lv:1,cat:"アイス",t:"スマホの最後に撮った写真を見せ合おう"},
+  {lv:1,cat:"トーク",t:"今ハマっているものをプレゼンし合おう（30秒）"},
+  {lv:1,cat:"トーク",t:"子どもの頃の将来の夢は？"},
+  {lv:1,cat:"トーク",t:"最近いちばん笑ったことを話そう"},
+  {lv:1,cat:"発見",t:"制限なしで共通点を5個さがそう"},
+  {lv:1,cat:"トーク",t:"無人島に1つだけ持っていくなら？"},
+  {lv:1,cat:"アクション",t:"相手の良いところを30秒間ほめ続けよう"},
+  {lv:1,cat:"トーク",t:"今日の自分を天気で例えると？"},
+  {lv:1,cat:"トーク",t:"行ってみたい国とその理由は？"},
+  {lv:1,cat:"トーク",t:"好きな食べ物トップ3を発表しよう"},
+  {lv:1,cat:"トーク",t:"休日の理想の過ごし方は？"},
+  {lv:1,cat:"トーク",t:"最近買ってよかったものは？"},
+  {lv:1,cat:"トーク",t:"宝くじで1億円当たったら、最初に何する？"},
+  {lv:1,cat:"トーク",t:"朝型？夜型？その理由も教えて"},
+  {lv:1,cat:"トーク",t:"一番好きな季節と、その季節にしたいこと"},
+  {lv:1,cat:"トーク",t:"カラオケで必ず歌う十八番は？"},
+  {lv:1,cat:"トーク",t:"生まれ変わるなら何になりたい？"},
+  {lv:1,cat:"アクション",t:"今いちばん食べたいもの、せーので指さそう"},
+  {lv:1,cat:"アクション",t:"相手の名前の由来を予想して当ててみよう"},
+  {lv:1,cat:"トーク",t:"子どもの頃ハマっていた遊びやアニメは？"},
+  {lv:1,cat:"トーク",t:"「これだけは毎日やる」という習慣は？"},
+  {lv:1,cat:"トーク",t:"スマホで一番使ってるアプリは？開いて見せ合おう"},
+  {lv:1,cat:"トーク",t:"最近見て面白かった映画・ドラマ・動画は？"},
+  {lv:1,cat:"発見",t:"3分以内に、二人だけの合言葉を決めよう"},
+  {lv:1,cat:"トーク",t:"もし1日だけ入れ替われたら何をする？"},
+  // ===== lv2 ふつう =====
+  {lv:2,cat:"深掘り",t:"今までで一番がんばった経験を話そう"},
+  {lv:2,cat:"深掘り",t:"人に言ってない小さなこだわりを1つ教えて"},
+  {lv:2,cat:"深掘り",t:"最近ちょっと落ち込んだことは？聞き役に徹してあげて"},
+  {lv:2,cat:"トーク",t:"5年後の自分はどこで何してると思う？"},
+  {lv:2,cat:"アクション",t:"相手のスマホの待ち受けの理由を聞いてみよう"},
+  {lv:2,cat:"深掘り",t:"どんな時に「幸せだな」と感じる？"},
+  {lv:2,cat:"トーク",t:"直したいと思ってる自分のクセは？"},
+  {lv:2,cat:"発見",t:"お互いの「意外な一面」を1つずつ告白しよう"},
+  {lv:2,cat:"トーク",t:"これだけは譲れない！というものは？"},
+  {lv:2,cat:"深掘り",t:"親や家族に感謝してることを1つ話そう"},
+  {lv:2,cat:"深掘り",t:"人生で一番の決断は何だった？"},
+  {lv:2,cat:"深掘り",t:"落ち込んだ時の、自分なりの立ち直り方は？"},
+  {lv:2,cat:"深掘り",t:"尊敬している人と、その理由は？"},
+  {lv:2,cat:"トーク",t:"学生時代に戻れるなら、何をやり直す？"},
+  {lv:2,cat:"アクション",t:"自分の長所を1つ、胸を張って言ってみよう"},
+  {lv:2,cat:"深掘り",t:"仕事や勉強で大事にしている価値観は？"},
+  {lv:2,cat:"トーク",t:"これまでで一番うれしかったプレゼントは？"},
+  {lv:2,cat:"トーク",t:"10年後も続けていたい趣味や習慣は？"},
+  {lv:2,cat:"深掘り",t:"一人の時間、何をしている時が一番好き？"},
+  {lv:2,cat:"トーク",t:"友達からどんな人だと言われることが多い？"},
+  {lv:2,cat:"深掘り",t:"最近「成長したな」と感じた瞬間は？"},
+  {lv:2,cat:"深掘り",t:"苦手なこと・克服したいことを正直に話そう"},
+  {lv:2,cat:"トーク",t:"今の自分に点数をつけるなら何点？理由は？"},
+  {lv:2,cat:"深掘り",t:"自分を変えたきっかけになった出来事は？"},
+  // ===== lv3 ちょっとドキッ =====
+  {lv:3,cat:"ドキッ",t:"出会ってからの第一印象、今はどう変わった？"},
+  {lv:3,cat:"ドキッ",t:"相手の好きなところを目を見て3つ伝えよう"},
+  {lv:3,cat:"ドキッ",t:"今までで一番恥ずかしかった話を告白しよう"},
+  {lv:3,cat:"ドキッ",t:"「実はちょっと気になってた」ことを正直に言ってみる"},
+  {lv:3,cat:"ドキッ",t:"理想のデートを具体的に語ってみよう"},
+  {lv:3,cat:"ドキッ",t:"相手にしてほしいこと・言われたい言葉は？"},
+  {lv:3,cat:"ドキッ",t:"10秒間、無言で見つめ合う（先に笑った方が負け）"},
+  {lv:3,cat:"ドキッ",t:"今この瞬間の正直な気持ちを一言で"},
+  {lv:3,cat:"ドキッ",t:"相手の第一印象で「ドキッとした」ポイントは？"},
+  {lv:3,cat:"ドキッ",t:"一緒に行きたい場所を、理由つきで伝えよう"},
+  {lv:3,cat:"ドキッ",t:"一緒にいる時に大事にしたいことは？"},
+  {lv:3,cat:"ドキッ",t:"相手のしぐさや表情で「いいな」と思う瞬間は？"},
+  {lv:3,cat:"ドキッ",t:"言われて一番うれしかった褒め言葉を再現してもらおう"},
+  {lv:3,cat:"ドキッ",t:"二人だけの秘密を1つ作ろう"},
+  {lv:3,cat:"ドキッ",t:"相手を色に例えると？その理由も"},
+  {lv:3,cat:"ドキッ",t:"30秒間、何も話さず一緒に過ごしてみる"},
+  {lv:3,cat:"ドキッ",t:"今日の時間に点数をつけるなら？その理由は"},
+  {lv:3,cat:"ドキッ",t:"「もっとこうしたい」を1つだけお願いしてみよう"},
+  {lv:3,cat:"ドキッ",t:"出会えてよかったと思う理由を1つ伝えよう"},
+  {lv:3,cat:"ドキッ",t:"お互いの呼び方、変えてみる？候補を出し合おう"},
+  // ===== 追加分 lv1 ライト =====
+  {lv:1,cat:"トーク",t:"好きな飲み物・カフェの定番オーダーは？"},
+  {lv:1,cat:"トーク",t:"コンビニで必ず買っちゃうものは？"},
+  {lv:1,cat:"トーク",t:"今日の朝ごはんは何だった？"},
+  {lv:1,cat:"トーク",t:"ペットを飼うなら何がいい？名前も決めよう"},
+  {lv:1,cat:"トーク",t:"最後の晩餐に食べるなら何？"},
+  {lv:1,cat:"トーク",t:"甘い派？しょっぱい派？"},
+  {lv:1,cat:"アクション",t:"きのこの山 vs たけのこの里、せーので選ぼう"},
+  {lv:1,cat:"発見",t:"最強の朝食メニューを二人で組み立てよう"},
+  {lv:1,cat:"トーク",t:"子どもの頃の口グセや好きだった言葉は？"},
+  {lv:1,cat:"トーク",t:"小学生の頃なりたかった職業ベスト3"},
+  {lv:1,cat:"トーク",t:"昔ハマっていたゲームやおもちゃは？"},
+  {lv:1,cat:"トーク",t:"子どもの頃、親に一番怒られた思い出は？"},
+  {lv:1,cat:"トーク",t:"学校で一番好きだった給食メニューは？"},
+  {lv:1,cat:"トーク",t:"もし透明人間になれたら、まず何をする？"},
+  {lv:1,cat:"トーク",t:"超能力を1つ手に入れるなら何がいい？"},
+  {lv:1,cat:"トーク",t:"100万円を24時間で使い切るなら？"},
+  {lv:1,cat:"トーク",t:"タイムマシンがあったら、いつの時代に行く？"},
+  {lv:1,cat:"トーク",t:"もし明日から1週間休みなら何する？"},
+  {lv:1,cat:"トーク",t:"ドラえもんの道具を1つもらえるなら？"},
+  {lv:1,cat:"トーク",t:"朝起きてまず最初にすることは？"},
+  {lv:1,cat:"トーク",t:"寝る前の習慣やルーティンはある？"},
+  {lv:1,cat:"トーク",t:"カバンの中に必ず入っているものは？"},
+  {lv:1,cat:"トーク",t:"自分の「プチ贅沢」って何？"},
+  {lv:1,cat:"トーク",t:"ストレス発散法を教え合おう"},
+  {lv:1,cat:"トーク",t:"行ってよかった旅行先ベスト1は？"},
+  {lv:1,cat:"トーク",t:"国内で行ってみたい場所は？"},
+  {lv:1,cat:"トーク",t:"海派？山派？インドア派？"},
+  {lv:1,cat:"トーク",t:"もう一度行きたい思い出の場所は？"},
+  {lv:1,cat:"トーク",t:"旅行に必ず持っていくものは？"},
+  {lv:1,cat:"トーク",t:"好きな音楽のジャンルやアーティストは？"},
+  {lv:1,cat:"トーク",t:"何度も見返してる映画・アニメはある？"},
+  {lv:1,cat:"トーク",t:"最近ハマっているYouTubeやSNSは？"},
+  {lv:1,cat:"トーク",t:"マンガを1作品おすすめするなら？"},
+  {lv:1,cat:"トーク",t:"好きな芸能人・有名人を発表しよう"},
+  {lv:1,cat:"アクション",t:"しりとり、10往復続けられるか挑戦！"},
+  {lv:1,cat:"アクション",t:"30秒で相手の好きそうなものを当ててみよう"},
+  {lv:1,cat:"発見",t:"お互いの「今日のMVP（よかったこと）」を発表"},
+  {lv:1,cat:"アクション",t:"ジェスチャーだけでお題を伝えて当ててもらおう"},
+  {lv:1,cat:"トーク",t:"二人の出会いを一言で表すなら？"},
+  {lv:1,cat:"トーク",t:"相手を絵文字3つで表現すると？"},
+  {lv:1,cat:"アクション",t:"最近のプレイリストから1曲シェアしよう"},
+  {lv:1,cat:"トーク",t:"自分の取扱説明書を一言で言うと？"},
+  {lv:1,cat:"トーク",t:"「実は地味に得意」なことは？"},
+  {lv:1,cat:"トーク",t:"笑いのツボはどこ？最近ツボったことは？"},
+  {lv:1,cat:"トーク",t:"今いちばん欲しいものは？"},
+  {lv:1,cat:"トーク",t:"自分にキャッチフレーズをつけるなら？"},
+  // ===== 追加分 lv2 ふつう =====
+  {lv:2,cat:"深掘り",t:"人生のターニングポイントはいつだった？"},
+  {lv:2,cat:"深掘り",t:"これまでで一番の挫折と、その乗り越え方は？"},
+  {lv:2,cat:"深掘り",t:"今、密かに頑張っていることはある？"},
+  {lv:2,cat:"トーク",t:"自分の人生に映画のタイトルをつけるなら？"},
+  {lv:2,cat:"トーク",t:"仕事を自由に選べるなら何をやってみたい？"},
+  {lv:2,cat:"深掘り",t:"10年前の自分にアドバイスするなら？"},
+  {lv:2,cat:"深掘り",t:"1年後、絶対に叶えたい目標は？"},
+  {lv:2,cat:"トーク",t:"お金・時間・健康、今いちばん欲しいのは？"},
+  {lv:2,cat:"深掘り",t:"「ありのままの自分」を出せる相手ってどんな人？"},
+  {lv:2,cat:"深掘り",t:"人生を変えた一冊・一本・一人を挙げるなら？"},
+  {lv:2,cat:"深掘り",t:"自分の中の「ゆずれないルール」は？"},
+  {lv:2,cat:"深掘り",t:"怒るポイント（地雷）はどこ？"},
+  {lv:2,cat:"深掘り",t:"逆に、何をされると一番うれしい？"},
+  {lv:2,cat:"深掘り",t:"友情で大切にしていることは？"},
+  {lv:2,cat:"深掘り",t:"これまでで一番感動した出来事は？"},
+  {lv:2,cat:"深掘り",t:"「あの選択は正解だった」と思うことは？"},
+  {lv:2,cat:"深掘り",t:"今の自分に足りないと思うものは？"},
+  {lv:2,cat:"深掘り",t:"どんな大人・どんな自分でいたい？"},
+  {lv:2,cat:"トーク",t:"最近、誰かに優しくされてうれしかったことは？"},
+  {lv:2,cat:"トーク",t:"自分を動物に例えると？理由も"},
+  {lv:2,cat:"深掘り",t:"死ぬまでにやりたいことを3つ挙げよう"},
+  {lv:2,cat:"トーク",t:"一番リラックスできる場所や瞬間は？"},
+  {lv:2,cat:"トーク",t:"もし働かなくても食べていけるなら何をする？"},
+  {lv:2,cat:"深掘り",t:"これまでの人生で一番の冒険は？"},
+  {lv:2,cat:"トーク",t:"自分の家族ってどんな家族？一言で"},
+  {lv:2,cat:"深掘り",t:"子どもの頃の自分は、今の自分を見て何て言う？"},
+  {lv:2,cat:"深掘り",t:"後悔していること、ある？"},
+  {lv:2,cat:"深掘り",t:"最近、価値観が変わった出来事は？"},
+  {lv:2,cat:"深掘り",t:"一番自分らしいと思う瞬間は？"},
+  {lv:2,cat:"トーク",t:"自由な1ヶ月とお金があれば何をする？"},
+  {lv:2,cat:"深掘り",t:"大事な決断をする時、何を基準に選ぶ？"},
+  {lv:2,cat:"トーク",t:"これだけは誰にも負けない、というものは？"},
+  {lv:2,cat:"深掘り",t:"最近泣いたのはいつ？どんな時？"},
+  {lv:2,cat:"深掘り",t:"長所と短所、表裏一体だと思うところは？"},
+  {lv:2,cat:"深掘り",t:"人生で一番影響を受けた言葉は？"},
+  {lv:2,cat:"トーク",t:"「これがあれば頑張れる」というものは？"},
+  {lv:2,cat:"トーク",t:"今いちばん感謝したい人は誰？"},
+  {lv:2,cat:"深掘り",t:"5年前と今で、一番変わったところは？"},
+  {lv:2,cat:"トーク",t:"自分へのご褒美、どんな時に何をあげる？"},
+  {lv:2,cat:"トーク",t:"名前を自由に変えられるなら何にする？理由も"},
+  {lv:2,cat:"深掘り",t:"今の幸せ度を100点満点で言うと？"},
+  // ===== 追加分 lv3 ちょっとドキッ =====
+  {lv:3,cat:"ドキッ",t:"好きなところを、顔・性格・しぐさで1つずつ"},
+  {lv:3,cat:"ドキッ",t:"初めて「いいな」と思った瞬間はいつ？"},
+  {lv:3,cat:"ドキッ",t:"今までで一番ドキッとした相手の言動は？"},
+  {lv:3,cat:"ドキッ",t:"もし付き合うなら、どんな関係でいたい？"},
+  {lv:3,cat:"ドキッ",t:"相手の名前を、いつもと違う呼び方で呼んでみる"},
+  {lv:3,cat:"ドキッ",t:"一緒にやってみたいことを3つ挙げよう"},
+  {lv:3,cat:"ドキッ",t:"相手の手を見て、気づいたことを言ってみる"},
+  {lv:3,cat:"ドキッ",t:"「ずっと一緒にいたい」と思う瞬間はどんな時？"},
+  {lv:3,cat:"ドキッ",t:"今、相手に一番聞いてみたいことは？"},
+  {lv:3,cat:"ドキッ",t:"恥ずかしくて言えなかった本音を1つ打ち明けよう"},
+  {lv:3,cat:"ドキッ",t:"相手の魅力を一言のキャッチコピーにすると？"},
+  {lv:3,cat:"ドキッ",t:"目を見て「ありがとう」を伝えよう"},
+  {lv:3,cat:"ドキッ",t:"今日いちばんドキッとした瞬間はいつ？"},
+  {lv:3,cat:"ドキッ",t:"相手の笑顔、10点満点で何点？理由も"},
+  {lv:3,cat:"ドキッ",t:"5秒間、相手の目だけを見つめてみる"},
+  {lv:3,cat:"ドキッ",t:"もし告白するならどんなセリフ？言ってみて"},
+  {lv:3,cat:"ドキッ",t:"二人の関係に名前をつけるなら？"},
+  {lv:3,cat:"ドキッ",t:"相手と過ごす理想の休日を朝から夜まで語って"},
+  {lv:3,cat:"ドキッ",t:"一番見せたくない自分の一面をちょっとだけ告白"},
+  {lv:3,cat:"ドキッ",t:"今の気持ちを一言ずつ伝え合おう"},
+  {lv:3,cat:"ドキッ",t:"相手の「実はうらやましい」ところは？"},
+  {lv:3,cat:"ドキッ",t:"出会う前と後で、自分の何が変わった？"},
+  {lv:3,cat:"ドキッ",t:"一日だけ何でも言うことを聞いてもらえるなら？"},
+  {lv:3,cat:"ドキッ",t:"今までで一番「会いたい」と思った瞬間は？"},
+  {lv:3,cat:"ドキッ",t:"相手にしてもらってうれしかったことベスト1"},
+  {lv:3,cat:"ドキッ",t:"二人の思い出で一番好きなシーンは？"},
+  {lv:3,cat:"ドキッ",t:"離れても変わらないでほしいところは？"},
+  {lv:3,cat:"ドキッ",t:"相手の声・笑い方・しぐさ、どれが一番好き？"},
+  {lv:3,cat:"ドキッ",t:"別れ際に言いたい一言を考えておこう"},
+  {lv:3,cat:"ドキッ",t:"ちょっと照れるけど、相手のフルネームを呼んでみる"},
+  {lv:3,cat:"ドキッ",t:"「この人になら言える」秘密を1つ"},
+  {lv:3,cat:"ドキッ",t:"相手と自分、似てると思うところは？"},
+  {lv:3,cat:"ドキッ",t:"今の二人の距離感、もっと近づきたい？"},
+  {lv:3,cat:"ドキッ",t:"相手の第一印象と今のギャップを正直に"},
+  {lv:3,cat:"ドキッ",t:"今日のお礼を、自分の言葉で伝えよう"},
+];
+
+// 宴会お題（みんなで答える系）lv 1..3
+const ENKAI_ODAI = [
+  // lv1
+  {lv:1,t:"この中で一番モテそうな人を指さして"},
+  {lv:1,t:"右隣の人の好きなところを1つ言って"},
+  {lv:1,t:"最近あった小さなラッキーを発表"},
+  {lv:1,t:"スマホの写真フォルダ、最新の1枚を見せて"},
+  {lv:1,t:"今日ここに来るまでで一番テンション上がったことは？"},
+  {lv:1,t:"この中で一番「兄／姉にしたい人」は？"},
+  {lv:1,t:"自分を食べ物に例えると？理由も"},
+  {lv:1,t:"今いちばん欲しいものを正直に発表"},
+  {lv:1,t:"左隣の人を一言で紹介して"},
+  {lv:1,t:"最近ハマっているものを全力でプレゼン（15秒）"},
+  {lv:1,t:"この中で一番の癒し系は誰？"},
+  {lv:1,t:"今日の自分を絵文字1つで表すと？"},
+  // lv2
+  {lv:2,t:"この場の全員を動物に例えると？"},
+  {lv:2,t:"人生で一番の無駄遣いを白状して"},
+  {lv:2,t:"学生時代のあだ名を発表して"},
+  {lv:2,t:"今までで一番の黒歴史をひとつ"},
+  {lv:2,t:"この中で「実は最初こわいと思ってた人」は？"},
+  {lv:2,t:"子どもの頃の夢と現実のギャップを語って"},
+  {lv:2,t:"最近こっそりハマっている自分だけの楽しみは？"},
+  {lv:2,t:"一番自信のある特技を披露して"},
+  {lv:2,t:"これまでで一番恥ずかしかった勘違いは？"},
+  {lv:2,t:"100万円もらったら何に使う？リアルに答えて"},
+  {lv:2,t:"この中で「一緒に旅行したい人」とその行き先は？"},
+  {lv:2,t:"人生で一番モテた時期の話をして"},
+  // lv3
+  {lv:3,t:"この中で連絡先を交換したい人を理由つきで"},
+  {lv:3,t:"最近こっそり検索したワードを正直に"},
+  {lv:3,t:"初恋の思い出をざっくり教えて"},
+  {lv:3,t:"この場で一番「タイプ」に近い人は？（雰囲気でOK）"},
+  {lv:3,t:"人に言ってない密かな野望を発表"},
+  {lv:3,t:"過去の一番イタかった発言を再現して"},
+  {lv:3,t:"今の恋愛・好きな人の状況を、言える範囲で正直に"},
+  {lv:3,t:"スマホの検索履歴、見せられる1件を公開"},
+  // ===== 追加分 lv1 =====
+  {lv:1,t:"この中で一番面白い人は誰？理由も"},
+  {lv:1,t:"今日の運勢を勝手に占って自己申告"},
+  {lv:1,t:"最近食べた中で一番おいしかったものは？"},
+  {lv:1,t:"好きな芸能人・有名人を1人発表"},
+  {lv:1,t:"この中で一番しっかり者は誰？"},
+  {lv:1,t:"朝起きてから今までで一番笑ったことは？"},
+  {lv:1,t:"自分の好きなところを1つ堂々と言って"},
+  {lv:1,t:"この場の誰かと共通点を1つ見つけて発表"},
+  {lv:1,t:"最近買ってよかったものをプレゼン"},
+  {lv:1,t:"今ハマっている曲を1曲シェア"},
+  {lv:1,t:"「一緒にゲームしたら強そう」な人は？"},
+  {lv:1,t:"今日のコーデのこだわりポイントを発表"},
+  {lv:1,t:"子どもの頃のあだ名を発表"},
+  {lv:1,t:"好きな季節とその理由を語って"},
+  {lv:1,t:"最近ハマっているお店や場所を紹介"},
+  {lv:1,t:"この場で一番元気な人は誰？"},
+  {lv:1,t:"今いちばん会いたい人は？（この場以外で）"},
+  {lv:1,t:"自分を色に例えると？理由も"},
+  {lv:1,t:"休日の過ごし方を発表して"},
+  {lv:1,t:"マイブームを30秒でプレゼン"},
+  {lv:1,t:"この中で一番優しいと思う人は？"},
+  {lv:1,t:"好きな食べ物を3つ早口で言って"},
+  {lv:1,t:"今日ここに来た時のテンションを10点満点で"},
+  {lv:1,t:"自分の名前の由来、知ってたら教えて"},
+  {lv:1,t:"最近の「ちょっといい話」を1つ"},
+  // ===== 追加分 lv2 =====
+  {lv:2,t:"これまでで一番の失敗談を語って"},
+  {lv:2,t:"人生で一番恥ずかしかった瞬間は？"},
+  {lv:2,t:"この中で「実は頼りになる」と思う人は？"},
+  {lv:2,t:"学生時代のいちばんの思い出は？"},
+  {lv:2,t:"自分の隠れた特技をこっそり告白"},
+  {lv:2,t:"今までで一番びっくりした出来事は？"},
+  {lv:2,t:"「若気の至り」だったエピソードを1つ"},
+  {lv:2,t:"この場の全員にあだ名をつけるなら？"},
+  {lv:2,t:"一番ハマって抜け出せなかった趣味は？"},
+  {lv:2,t:"人生で一番頑張った瞬間を語って"},
+  {lv:2,t:"今いちばん悩んでいることを軽く相談"},
+  {lv:2,t:"これまでで一番モテたエピソードは？"},
+  {lv:2,t:"自分の「実はこだわってる」ポイントは？"},
+  {lv:2,t:"子どもの頃の夢、今思うとどう？"},
+  {lv:2,t:"この中で一緒に働きたい人は？理由も"},
+  {lv:2,t:"旅行で行ったベスト＆ワーストを教えて"},
+  {lv:2,t:"一番の散財エピソードを白状して"},
+  {lv:2,t:"今までで一番感動したことは？"},
+  {lv:2,t:"学生時代の自分を一言で表すと？"},
+  {lv:2,t:"最近「歳をとったな」と感じた瞬間は？"},
+  // ===== 追加分 lv3 =====
+  {lv:3,t:"この中で気になる人は？（雰囲気でOK）"},
+  {lv:3,t:"今までで一番大胆だった恋愛エピソードは？"},
+  {lv:3,t:"初デートの思い出を語って"},
+  {lv:3,t:"好きになるのはどんな人？タイプを具体的に"},
+  {lv:3,t:"人生で一番ドキドキした瞬間は？"},
+  {lv:3,t:"言える範囲で、一番の恋の失敗談を"},
+  {lv:3,t:"一緒に飲みに行きたい人を指名して理由を"},
+  {lv:3,t:"過去一の恋の思い出を、ぼかしてもOKで"},
+  {lv:3,t:"今までで一番情熱を注いだものは？"},
+  {lv:3,t:"誰にも言ってない夢や野望を打ち明けて"},
+  {lv:3,t:"スマホの写真、自分が一番好きな1枚を見せて"},
+  {lv:3,t:"この中で一番ミステリアスだと思う人は？"},
+  {lv:3,t:"「実は気になってた」ことを誰かに聞いてみて"},
+];
+
+// 罰ゲーム：lv 1=ゆるめ 2=ふつう 3=鬼 / alc:true=お酒系
+const ENKAI_BATSU = [
+  // ===== ゆるめ lv1 =====
+  {lv:1,alc:false,t:"変顔で自撮りして全員に見せる"},
+  {lv:1,alc:false,t:"好きな人のタイプを発表する"},
+  {lv:1,alc:false,t:"一発ギャグを1つ披露する"},
+  {lv:1,alc:false,t:"次のターンまで敬語で話す"},
+  {lv:1,alc:false,t:"モノマネを1つ披露する"},
+  {lv:1,alc:false,t:"自分の名前をできるだけかわいく言ってみる"},
+  {lv:1,alc:false,t:"隣の人とハイタッチして決めポーズ"},
+  {lv:1,alc:false,t:"好きなアニメ・漫画のセリフを感情こめて言う"},
+  {lv:1,alc:false,t:"動物の鳴きマネを3種類やる"},
+  {lv:1,alc:false,t:"今の気分をダジャレで表現する"},
+  {lv:1,alc:false,t:"笑わずに真顔で「あいしてる」と言う"},
+  {lv:1,alc:false,t:"全力の作り笑顔を10秒キープ"},
+  {lv:1,alc:true ,t:"全員で乾杯！音頭をとる"},
+  {lv:1,alc:true ,t:"相手の合図に合わせて、飲み物をひと口"},
+  // ===== ふつう lv2 =====
+  {lv:2,alc:false,t:"隣の人を30秒ほめ倒す"},
+  {lv:2,alc:false,t:"その場で考えた即興CMを演じる（15秒）"},
+  {lv:2,alc:false,t:"スマホの写真を1枚みんなに見せる（自分で選んでOK）"},
+  {lv:2,alc:false,t:"好きな歌をサビだけ熱唱"},
+  {lv:2,alc:false,t:"しょうもない自慢を全力でする30秒"},
+  {lv:2,alc:false,t:"全員と目を合わせてウインクして一周する"},
+  {lv:2,alc:false,t:"自己紹介を好きな芸人風にやってみる"},
+  {lv:2,alc:false,t:"この場の誰かのモノマネをして当ててもらう"},
+  {lv:2,alc:false,t:"今日の運勢を勝手に占って全員に発表"},
+  {lv:2,alc:false,t:"好きな異性のタイプを具体的に3つ挙げる"},
+  {lv:2,alc:false,t:"隣の人と即興でCMソングを作って歌う"},
+  {lv:2,alc:false,t:"持ちネタや特技を1つ、本気で披露する"},
+  {lv:2,alc:true ,t:"一気はナシで、ひと口多めにどうぞ🍺"},
+  {lv:2,alc:true ,t:"指名した人と乾杯、ぐいっといこう"},
+  // ===== 鬼 lv3 =====
+  {lv:3,alc:false,t:"黒歴史を1つ全員に告白する"},
+  {lv:3,alc:false,t:"連絡先の上から3人目に今すぐスタンプを送る"},
+  {lv:3,alc:false,t:"この場の全員のいいところを言い終わるまで終われない"},
+  {lv:3,alc:false,t:"変顔キープで次の人の番が終わるまで耐える"},
+  {lv:3,alc:false,t:"スマホの検索履歴を1件、勇気を出して公開する"},
+  {lv:3,alc:false,t:"好きな人がいるか正直に告白（名前は伏せてOK）"},
+  {lv:3,alc:false,t:"一番恥ずかしい写真を1枚みんなに見せる"},
+  {lv:3,alc:false,t:"告白の練習、その場の人を相手に本気でやる"},
+  {lv:3,alc:false,t:"モノマネ、全員が合格と言うまで終われない"},
+  {lv:3,alc:false,t:"ジャンケンで負けたら、罰ゲームを2つ連続で実行"},
+  {lv:3,alc:true ,t:"ドリンク早飲み対決を、相手を指名して挑む"},
+  {lv:3,alc:true ,t:"お酒を相手指名で乾杯対決（無理は禁物）"},
+  // ===== 追加分 ゆるめ lv1 =====
+  {lv:1,alc:false,t:"好きな食べ物を早口で3回言う"},
+  {lv:1,alc:false,t:"鼻の下に指を挟んで10秒キープ"},
+  {lv:1,alc:false,t:"アイドル風の決めポーズと挨拶をする"},
+  {lv:1,alc:false,t:"持ち歌のサビをアカペラで歌う"},
+  {lv:1,alc:false,t:"今の自分を絵文字3つで表現して説明"},
+  {lv:1,alc:false,t:"隣の人をフルネーム＋さん付けで3回呼ぶ"},
+  {lv:1,alc:false,t:"好きな食べ物になりきって自己紹介"},
+  {lv:1,alc:false,t:"「実は私◯◯なんです」と意外な事実を告白"},
+  {lv:1,alc:false,t:"全員に向かって投げキッスを1人ずつ"},
+  {lv:1,alc:false,t:"好きなキャラのセリフを完コピで"},
+  {lv:1,alc:false,t:"30秒間、笑顔をキープしながら話す"},
+  {lv:1,alc:false,t:"自分の好きなところを5つ言い切る"},
+  {lv:1,alc:false,t:"オリジナルのギャグをその場で1つ作る"},
+  {lv:1,alc:false,t:"ロボット風の動きで自己紹介"},
+  {lv:1,alc:false,t:"隣の人と腕を組んで記念撮影ポーズ"},
+  {lv:1,alc:false,t:"大げさなリアクションで「えーっ!?」を3パターン"},
+  {lv:1,alc:false,t:"好きな効果音を口で再現する"},
+  {lv:1,alc:false,t:"今日のラッキーアイテムを勝手に予言"},
+  {lv:1,alc:false,t:"鼻歌で曲を当ててもらう（1曲）"},
+  {lv:1,alc:false,t:"全員の名前を順番に言えるか挑戦"},
+  {lv:1,alc:false,t:"動物のモノマネで一周自己紹介"},
+  {lv:1,alc:false,t:"「好きです」を方言3種類で言う"},
+  {lv:1,alc:false,t:"一番テンションが上がる曲名を叫ぶ"},
+  {lv:1,alc:false,t:"今の気持ちを俳句（5・7・5）で詠む"},
+  {lv:1,alc:false,t:"ぶりっ子全開で「お腹すいた〜」と言う"},
+  {lv:1,alc:false,t:"隣の人の良いところを5秒以内に3つ"},
+  {lv:1,alc:false,t:"変な歩き方でテーブルを一周する"},
+  {lv:1,alc:false,t:"好きな芸能人になりきって一言コメント"},
+  {lv:1,alc:true ,t:"好きな飲み物を当ててもらい、外れたら一口"},
+  {lv:1,alc:true ,t:"全員で「いえーい」と乾杯写真を撮る"},
+  // ===== 追加分 ふつう lv2 =====
+  {lv:2,alc:false,t:"隣の人の好きなところを30秒、息継ぎなしで"},
+  {lv:2,alc:false,t:"即興でこの飲み会のキャッチコピーを作る"},
+  {lv:2,alc:false,t:"学生時代の黒歴史を1つ軽く披露"},
+  {lv:2,alc:false,t:"一発ギャグを誰かが笑うまで続ける"},
+  {lv:2,alc:false,t:"好きな人に送りたいメッセージを声に出す（架空でOK）"},
+  {lv:2,alc:false,t:"30秒で全員の共通点を1つ見つけて発表"},
+  {lv:2,alc:false,t:"その場の誰かになりきってモノマネ自己紹介"},
+  {lv:2,alc:false,t:"即興でラップを8小節（テーマ自由）"},
+  {lv:2,alc:false,t:"自信のある写真を見せてエピソードを語る"},
+  {lv:2,alc:false,t:"好きな映画やドラマの名シーンを再現"},
+  {lv:2,alc:false,t:"隣の人とペアで即興コントを30秒"},
+  {lv:2,alc:false,t:"自分のテーマソングを発表して少し歌う"},
+  {lv:2,alc:false,t:"「実は◯◯が苦手」を3つ告白"},
+  {lv:2,alc:false,t:"好きなタイプを上から下まで具体的に語る"},
+  {lv:2,alc:false,t:"持っているものだけで変身ポーズを決める"},
+  {lv:2,alc:false,t:"今までで一番恥ずかしかった瞬間を再現"},
+  {lv:2,alc:false,t:"隣の人を主役に即興ナレーションをつける"},
+  {lv:2,alc:false,t:"一番モテたエピソードを盛らずに語る"},
+  {lv:2,alc:false,t:"あだ名を新しく考えて全員に布教する"},
+  {lv:2,alc:false,t:"好きな曲をワンフレーズ、振り付きで"},
+  {lv:2,alc:false,t:"最近のマイブームを熱量MAXでプレゼン"},
+  {lv:2,alc:false,t:"全員から1つずつお題をもらってモノマネ"},
+  {lv:2,alc:true ,t:"隣の人と乾杯、ひと口いこう"},
+  {lv:2,alc:true ,t:"ルーレットで当たった人と一口ずつ乾杯"},
+  {lv:2,alc:true ,t:"一番飲んでなさそうな人を誘って一緒に乾杯"},
+  // ===== 追加分 鬼 lv3 =====
+  {lv:3,alc:false,t:"過去の恋愛で一番大胆だった行動を告白"},
+  {lv:3,alc:false,t:"スマホの写真フォルダをランダムで1枚見せる"},
+  {lv:3,alc:false,t:"連絡先からランダムな1人に「元気？」と送る"},
+  {lv:3,alc:false,t:"黒歴史を、細かいディテールまで語る"},
+  {lv:3,alc:false,t:"この場で「気になる人」を理由つきで指名"},
+  {lv:3,alc:false,t:"好きな人へのメッセージを実演（架空でも本気で）"},
+  {lv:3,alc:false,t:"告白された時の理想のシチュエーションを語る"},
+  {lv:3,alc:false,t:"一番イタかった若気の至りを再現する"},
+  {lv:3,alc:false,t:"自分のギャップを実演して全員を驚かせる"},
+  {lv:3,alc:false,t:"過去一の失恋エピソードを笑い話として"},
+  {lv:3,alc:false,t:"今いちばんドキドキしている人を正直に指さす"},
+  {lv:3,alc:false,t:"本気の口説き文句を隣の人に1つ"},
+  {lv:3,alc:false,t:"検索履歴か写真、どちらか1つを公開する"},
+  {lv:3,alc:true ,t:"飲みっぷり対決、相手指名でカウント3で乾杯"},
+  {lv:3,alc:true ,t:"「王様」になって、好きな人1人に“命令”を1つ出せる（終わったら全員で乾杯）"},
+  // ===== 追加分 鬼 lv3（ハード目） =====
+  {lv:3,alc:false,t:"スマホのカメラロールをランダムで3枚連続で見せる"},
+  {lv:3,alc:false,t:"一番最近のスクリーンショットを全員に公開する"},
+  {lv:3,alc:false,t:"スマホの検索履歴を3件連続で公開する"},
+  {lv:3,alc:false,t:"直近のトーク画面を1つ見せる（相手の名前は隠してOK）"},
+  {lv:3,alc:false,t:"誰にも言ってないレベルの黒歴史を3つ告白"},
+  {lv:3,alc:false,t:"一発ギャグを、全員が声を出して笑うまで終われない"},
+  {lv:3,alc:false,t:"この場で一番タイプな人に、本気の告白を30秒"},
+  {lv:3,alc:false,t:"自分の一番のコンプレックスを正直に告白する"},
+  {lv:3,alc:false,t:"連絡先の「あ行」の人に電話して、3言だけ話す"},
+  {lv:3,alc:false,t:"過去一恥ずかしいSNS投稿を探して読み上げる"},
+  {lv:3,alc:false,t:"「自分のここ直した方がいい？」を全員に聞いて正直な答えをもらう"},
+  {lv:3,alc:false,t:"立ち上がって好きな曲をワンコーラス本気で熱唱"},
+  {lv:3,alc:false,t:"酔ったときにやりがちなことを全力で実演"},
+  {lv:3,alc:false,t:"全員から「弱点」を1つずつ指摘してもらう"},
+  {lv:3,alc:false,t:"真顔の愛の告白を、その場の3人にする"},
+  {lv:3,alc:false,t:"スマホの待ち受けとホーム画面を全部見せる"},
+  {lv:3,alc:false,t:"隣の人と見つめ合い、先に笑ったらもう1つ罰ゲーム"},
+  {lv:3,alc:false,t:"一番恥ずかしい変顔を撮って、グループに送信する"},
+  {lv:3,alc:false,t:"今好きな人がいるか正直に。いるなら出会いだけ話す"},
+  {lv:3,alc:false,t:"この場で一番モテそうな人を30秒、本気で口説いてみる"},
+  {lv:3,alc:false,t:"学生時代の自分の写真を1枚みんなに見せる"},
+  {lv:3,alc:false,t:"罰ゲームの指名権を賭けてジャンケン、負けたら鬼を2連続"},
+  {lv:3,alc:true ,t:"濃いめの一杯を時間内に（無理なら別の罰ゲームでOK）"},
+  {lv:3,alc:true ,t:"相手を指名して飲み比べ、負けた方が次の鬼を1つ（無理は禁物）"},
+  // ===== 追加分 鬼 lv3（過激目） =====
+  {lv:3,alc:false,t:"写真フォルダで一番恥ずかしい1枚を自分で選んで見せる"},
+  {lv:3,alc:false,t:"最後に送ったLINEのスクショを1枚、隠さず見せる"},
+  {lv:3,alc:false,t:"過去の恋愛遍歴を、人数だけ正直に申告する"},
+  {lv:3,alc:false,t:"元恋人や好きだった人のイニシャルを公開する"},
+  {lv:3,alc:false,t:"今までで一番大胆だったアプローチを再現する"},
+  {lv:3,alc:false,t:"この場に恋愛対象になりうる人がいるか、正直に手を挙げる"},
+  {lv:3,alc:false,t:"全力の変なダンスを15秒、動画で撮ってグループに送る"},
+  {lv:3,alc:false,t:"隣の人をお姫様抱っこ or おんぶで一周（無理のない範囲で）"},
+  {lv:3,alc:false,t:"恋愛で一番後悔していることを正直に告白する"},
+  {lv:3,alc:false,t:"一発芸を3連発、全部スベったら鬼をもう1つ"},
+  {lv:3,alc:false,t:"一番恥ずかしいあだ名で、次のラウンドまで全員に呼ばれる"},
+  {lv:3,alc:false,t:"好きな人への本気のLINEを下書きまで打つ（送信は自由）"},
+  {lv:3,alc:false,t:"昔の痛い写真（黒歴史フォト）を1枚見せる"},
+  {lv:3,alc:false,t:"その場の誰かを指名して、本気の口説き文句を至近距離で"},
+  {lv:3,alc:false,t:"人生で一番ヤバかった夜の話を、言える範囲で"},
+  {lv:3,alc:false,t:"全力のキメ顔ポーズを10秒キープ、笑ったら鬼をもう1つ"},
+  {lv:3,alc:false,t:"連絡先を見せて、登録名が一番面白い人を発表する"},
+  {lv:3,alc:false,t:"今いちばん気になっている人を、母音だけで名前を言う"},
+  {lv:3,alc:false,t:"スマホを隣の人に渡して、好きな写真を1枚選んで公開してもらう"},
+  {lv:3,alc:false,t:"自分の一番のチャームポイントを全力でアピールする30秒"},
+];
+
+/* ================= 共通 ================= */
+let soundOn = true;
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function openFutari(){ resetFutari(); go('futari'); }
+function openEnkai(){ go('enkai'); }
+function toggleSound(btn){ soundOn=!soundOn; btn.textContent = soundOn?'🔊':'🔈'; }
+
+// セグメント切り替え
+document.querySelectorAll('.seg').forEach(seg=>{
+  seg.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    if(seg.id==='fLevel') resetFutari();
+  });
+});
+function segVal(id,attr){ return document.querySelector('#'+id+' button.on').dataset[attr]; }
+
+/* ================= サウンド（Web Audio） ================= */
+let actx;
+function ac(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
+function beep(freq,dur,type='sine',vol=.2,when=0){
+  if(!soundOn) return;
+  const c=ac(), o=c.createOscillator(), g=c.createGain();
+  o.type=type; o.frequency.value=freq; o.connect(g); g.connect(c.destination);
+  const t=c.currentTime+when;
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.start(t); o.stop(t+dur);
+}
+function drumroll(ms){
+  if(!soundOn) return;
+  let t=0;
+  const id=setInterval(()=>{ beep(90+Math.random()*40,.05,'square',.12); },45);
+  setTimeout(()=>clearInterval(id),ms);
+}
+function fanfare(){ beep(523,.12,'triangle',.25,0); beep(659,.12,'triangle',.25,.12); beep(784,.25,'triangle',.28,.24); }
+function ding(){ beep(880,.12,'sine',.22); beep(1320,.18,'sine',.18,.06); }
+
+/* ================= ふたりモード ================= */
+function resetFutari(){ /* 完全ランダムのため事前準備は不要 */ }
+function nextFutari(){
+  const lv=+segVal('fLevel','lv');
+  const list=FUTARI.filter(x=>x.lv===lv);
+  const item=list[Math.floor(Math.random()*list.length)];
+  renderFutari(item);
+  ding();
+}
+function passFutari(){ nextFutari(); }
+function renderFutari(it){
+  const c=document.getElementById('fCard');
+  c.innerHTML = `<div class="badge b-pink">${it.cat}</div>
+    <div class="text">${it.t}</div>
+    <div class="hint">気が向いたらどうぞ・無理なら「パス」でOK</div>`;
+  c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop');
+}
+
+/* ================= 宴会モード ================= */
+function buildEnkaiPool(){
+  const type=segVal('eType','type');
+  const lv=+segVal('eLevel','lv');
+  const noAlc=document.getElementById('noAlcohol').checked;
+  let pool=[];
+  const odai = ENKAI_ODAI.filter(x=>x.lv<=lv).map(x=>({kind:'odai',...x}));
+  let batsu = ENKAI_BATSU.filter(x=>x.lv===lv);
+  if(noAlc) batsu=batsu.filter(x=>!x.alc);
+  batsu = batsu.map(x=>({kind:'batsu',...x}));
+  if(type==='odai') pool=odai;
+  else if(type==='batsu') pool=batsu;
+  else pool=odai.concat(batsu);
+  return pool;
+}
+let members = []; // 指名する参加者
+function addMember(){
+  const input=document.getElementById('nameInput');
+  const name=input.value.trim();
+  input.value=''; input.focus();
+  if(!name) return;
+  if(members.includes(name)) return; // 同名は追加しない
+  members.push(name);
+  renderMembers();
+}
+function removeMember(i){ members.splice(i,1); renderMembers(); }
+function renderMembers(){
+  document.getElementById('memberList').innerHTML =
+    members.map((n,i)=>`<span class="chip">${esc(n)}<button onclick="removeMember(${i})">×</button></span>`).join('');
+}
+function getNames(){ return members.slice(); }
+// Enterキーでも追加
+document.getElementById('nameInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){ e.preventDefault(); addMember(); }
+});
+function spinEnkai(){
+  const pool=buildEnkaiPool();
+  if(pool.length===0){ alert('条件に合うお題がありません。設定を変えてね'); return; }
+  const names=getNames();
+  const btn=document.getElementById('spinBtn'); btn.disabled=true;
+  const c=document.getElementById('eCard');
+  drumroll(1300);
+
+  let n=0; const total=16;
+  const tick=()=>{
+    const peek=pool[Math.floor(Math.random()*pool.length)];
+    const who=names.length?names[Math.floor(Math.random()*names.length)]:'';
+    c.classList.add('spin');
+    c.innerHTML=`<div class="badge b-orange">？？？</div>
+      ${who?`<div class="who">${esc(who)}</div>`:''}
+      <div class="text">${peek.t}</div>`;
+    n++;
+    if(n<total){ setTimeout(tick, 60+n*8); }
+    else finishEnkai(pool, names);
+  };
+  tick();
+}
+function finishEnkai(pool, names){
+  // 完全ランダム（被ってもOK）
+  const pick=pool[Math.floor(Math.random()*pool.length)];
+  const who=names.length?names[Math.floor(Math.random()*names.length)]:'';
+  const c=document.getElementById('eCard');
+  c.classList.remove('spin');
+  const badge = pick.kind==='batsu'
+    ? `<div class="badge b-red">罰ゲーム${pick.alc?' 🍺':''}</div>`
+    : `<div class="badge b-blue">お題</div>`;
+  c.innerHTML = `${badge}
+    ${who?`<div class="who">👉 ${esc(who)} の番！</div>`:''}
+    <div class="text">${pick.t}</div>
+    <div class="hint">${pick.kind==='batsu'?'がんばれ！次は誰だ…？':'みんなで答えよう'}</div>`;
+  c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop');
+  if(pick.kind==='batsu') fanfare(); else ding();
+  document.getElementById('spinBtn').disabled=false;
+}
+
+/* ================= util ================= */
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function esc(s){ return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* ================= PWA（ホーム画面アプリ化・オフライン対応） ================= */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
